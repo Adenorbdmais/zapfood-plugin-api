@@ -15,12 +15,12 @@ let filaPedidos = [];
 
 function tokenValido(user_id, token) {
 
-  if(!user_id) return false;
-  if(!token) return false;
+  if (!user_id) return false;
+  if (!token) return false;
 
   const TOKEN_MASTER = "ZAPFOOD_PLUGIN_2026";
 
-  if(token !== TOKEN_MASTER) return false;
+  if (token !== TOKEN_MASTER) return false;
 
   return true;
 
@@ -39,44 +39,68 @@ app.get("/", (req, res) => {
 });
 
 /* =============================
+   HEALTH CHECK (Railway)
+============================= */
+
+app.get("/health", (req, res) => {
+
+  res.json({
+    status: "ok"
+  });
+
+});
+
+/* =============================
    REGISTRO PLUGIN
 ============================= */
 
 app.post("/plugin/register", (req, res) => {
 
-  const { user_id, machine_id, plugin_version, token } = req.body;
+  try {
 
-  if (!tokenValido(user_id, token)) {
+    const { user_id, machine_id, plugin_version, token } = req.body;
 
-    return res.status(401).json({
-      error: "Plugin não autorizado"
+    if (!tokenValido(user_id, token)) {
+
+      return res.status(401).json({
+        error: "Plugin não autorizado"
+      });
+
+    }
+
+    if (!plugins[user_id]) {
+      plugins[user_id] = [];
+    }
+
+    const existe = plugins[user_id].find(
+      p => p.machine_id === machine_id
+    );
+
+    if (!existe) {
+
+      plugins[user_id].push({
+        machine_id,
+        plugin_version,
+        last_seen: new Date()
+      });
+
+    }
+
+    console.log("Plugin conectado:", user_id, machine_id);
+
+    res.json({
+      status: "plugin registrado"
+    });
+
+  } catch (error) {
+
+    console.error("Erro register:", error);
+
+    res.status(500).json({
+      error: "erro interno"
     });
 
   }
-
-  if (!plugins[user_id]) {
-    plugins[user_id] = [];
-  }
-
-  const existe = plugins[user_id].find(
-    p => p.machine_id === machine_id
-  );
-
-  if (!existe) {
-
-    plugins[user_id].push({
-      machine_id,
-      plugin_version,
-      last_seen: new Date()
-    });
-
-  }
-
-  console.log("Plugin conectado:", user_id, machine_id);
-
-  res.json({
-    status: "plugin registrado"
-  });
 
 });
 
@@ -86,19 +110,31 @@ app.post("/plugin/register", (req, res) => {
 
 app.post("/plugin/print", (req, res) => {
 
-  const { user_id, tipo, pdf } = req.body;
+  try {
 
-  filaPedidos.push({
-    user_id,
-    tipo,
-    pdf
-  });
+    const { user_id, tipo, pdf } = req.body;
 
-  console.log("Pedido enviado para fila");
+    filaPedidos.push({
+      user_id,
+      tipo,
+      pdf
+    });
 
-  res.json({
-    status: "pedido enviado"
-  });
+    console.log("Pedido enviado para fila");
+
+    res.json({
+      status: "pedido enviado"
+    });
+
+  } catch (error) {
+
+    console.error("Erro print:", error);
+
+    res.status(500).json({
+      error: "erro interno"
+    });
+
+  }
 
 });
 
@@ -108,17 +144,29 @@ app.post("/plugin/print", (req, res) => {
 
 app.get("/plugin/pedidos", (req, res) => {
 
-  const { user_id } = req.query;
+  try {
 
-  const pedidos = filaPedidos.filter(
-    p => p.user_id === user_id
-  );
+    const { user_id } = req.query;
 
-  filaPedidos = filaPedidos.filter(
-    p => p.user_id !== user_id
-  );
+    const pedidos = filaPedidos.filter(
+      p => p.user_id === user_id
+    );
 
-  res.json(pedidos);
+    filaPedidos = filaPedidos.filter(
+      p => p.user_id !== user_id
+    );
+
+    res.json(pedidos);
+
+  } catch (error) {
+
+    console.error("Erro pedidos:", error);
+
+    res.status(500).json({
+      error: "erro interno"
+    });
+
+  }
 
 });
 
@@ -132,10 +180,17 @@ app.get("/plugin/status", (req, res) => {
 
 });
 
+/* =============================
+   START SERVER
+============================= */
+
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
 
-  console.log("API ZapFood Brasil rodando na porta", PORT);
+  console.log("=================================");
+  console.log("API ZapFood Brasil iniciada");
+  console.log("Porta:", PORT);
+  console.log("=================================");
 
 });
