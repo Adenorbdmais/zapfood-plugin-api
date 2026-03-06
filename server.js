@@ -18,9 +18,6 @@ function tokenValido(user_id, token) {
   if(!user_id) return false;
   if(!token) return false;
 
-  // EXEMPLO
-  // depois você pode validar no banco
-
   const TOKEN_MASTER = "ZAPFOOD_PLUGIN_2026";
 
   if(token !== TOKEN_MASTER) return false;
