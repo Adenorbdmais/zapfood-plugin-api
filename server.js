@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
@@ -12,13 +13,9 @@ let filaPedidos = [];
    VALIDAÇÃO DE TOKEN
 ============================= */
 function tokenValido(user_id, token) {
-  if (!user_id) return false;
-  if (!token) return false;
-
+  if (!user_id || !token) return false;
   const TOKEN_MASTER = "ZAPFOOD_PLUGIN_2026";
-  if (token !== TOKEN_MASTER) return false;
-
-  return true;
+  return token === TOKEN_MASTER;
 }
 
 /* =============================
@@ -36,29 +33,22 @@ app.get("/health", (req, res) => {
 });
 
 /* =============================
-   REGISTRO DE PLUGIN
+   REGISTRO PLUGIN
 ============================= */
 app.post("/plugin/register", (req, res) => {
   try {
     const { user_id, machine_id, plugin_version, token } = req.body;
-
     if (!tokenValido(user_id, token)) {
       return res.status(401).json({ error: "Plugin não autorizado" });
     }
 
     if (!plugins[user_id]) plugins[user_id] = [];
-
     const existe = plugins[user_id].find(p => p.machine_id === machine_id);
     if (!existe) {
-      plugins[user_id].push({
-        machine_id,
-        plugin_version,
-        last_seen: new Date()
-      });
+      plugins[user_id].push({ machine_id, plugin_version, last_seen: new Date() });
     }
 
     console.log("Plugin conectado:", user_id, machine_id);
-
     res.json({ status: "plugin registrado" });
 
   } catch (error) {
@@ -76,6 +66,7 @@ app.post("/plugin/print", (req, res) => {
     filaPedidos.push({ user_id, tipo, pdf });
     console.log("Pedido enviado para fila");
     res.json({ status: "pedido enviado" });
+
   } catch (error) {
     console.error("Erro print:", error);
     res.status(500).json({ error: "erro interno" });
@@ -91,6 +82,7 @@ app.get("/plugin/pedidos", (req, res) => {
     const pedidos = filaPedidos.filter(p => p.user_id === user_id);
     filaPedidos = filaPedidos.filter(p => p.user_id !== user_id);
     res.json(pedidos);
+
   } catch (error) {
     console.error("Erro pedidos:", error);
     res.status(500).json({ error: "erro interno" });
@@ -98,14 +90,14 @@ app.get("/plugin/pedidos", (req, res) => {
 });
 
 /* =============================
-   STATUS DOS PLUGINS
+   STATUS PLUGINS
 ============================= */
 app.get("/plugin/status", (req, res) => {
   res.json(plugins);
 });
 
 /* =============================
-   INICIAR SERVIDOR
+   START SERVER
 ============================= */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
